@@ -41,14 +41,14 @@ export function EntryForm() {
     if (isEditing) load(+entryId);
   }, [entryId]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const newEntry = Object.fromEntries(formData) as unknown as Entry;
     if (isEditing) {
-      updateEntry({ ...entry, ...newEntry });
+      await updateEntry({ ...entry, ...newEntry });
     } else {
-      addEntry(newEntry);
+      await addEntry(newEntry);
     }
     navigate('/');
   }
