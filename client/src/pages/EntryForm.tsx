@@ -42,15 +42,19 @@ export function EntryForm() {
   }, [entryId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const newEntry = Object.fromEntries(formData) as unknown as Entry;
-    if (isEditing) {
-      await updateEntry({ ...entry, ...newEntry });
-    } else {
-      await addEntry(newEntry);
+    try {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const newEntry = Object.fromEntries(formData) as unknown as Entry;
+      if (isEditing) {
+        await updateEntry({ ...entry, ...newEntry });
+      } else {
+        await addEntry(newEntry);
+      }
+      navigate('/');
+    } catch (error) {
+      setError(error);
     }
-    navigate('/');
   }
 
   function handleDelete() {

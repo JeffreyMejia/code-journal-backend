@@ -49,6 +49,34 @@ app.post('/api/entries', async (req, res, next) => {
   }
 });
 
+app.put('/api/entries/:entryId', async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    console.log(`recieved request for ${entryId}`);
+    const { title, notes, photoUrl } = req.body;
+    if (!title || !notes || !photoUrl) {
+      throw new ClientError(400, 'error all fields are required!');
+    }
+    const sql = `
+    update "entries"
+    set "title" = $1,
+    "notes" = $2,
+    "photoUrl" = $3
+    where "entryId" = $4
+    returning *;
+    `;
+    const params = [title, notes, photoUrl, entryId];
+    const results = await db.query(sql, params);
+    const updatedEntry = results.rows[0];
+    if (!updatedEntry) {
+      throw new ClientError(404, `error could not find ${entryId}`);
+    }
+    res.status(200).json(updatedEntry);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {
