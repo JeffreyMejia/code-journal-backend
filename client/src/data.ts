@@ -5,32 +5,6 @@ export type Entry = {
   photoUrl: string;
 };
 
-type Data = {
-  entries: Entry[];
-  nextEntryId: number;
-};
-
-const dataKey = 'code-journal-data';
-
-function readData(): Data {
-  let data: Data;
-  const localData = localStorage.getItem(dataKey);
-  if (localData) {
-    data = JSON.parse(localData);
-  } else {
-    data = {
-      entries: [],
-      nextEntryId: 1,
-    };
-  }
-  return data;
-}
-
-function writeData(data: Data): void {
-  const dataJSON = JSON.stringify(data);
-  localStorage.setItem(dataKey, dataJSON);
-}
-
 export async function readEntry(entryId: number): Promise<Entry | undefined> {
   const response = await fetch(`/api/entries/${entryId}`);
   const result = await response.json();
@@ -62,10 +36,9 @@ export async function updateEntry(entry: Entry): Promise<Entry> {
 }
 
 export async function removeEntry(entryId: number): Promise<void> {
-  const data = readData();
-  const updatedArray = data.entries.filter(
-    (entry) => entry.entryId !== entryId
-  );
-  data.entries = updatedArray;
-  writeData(data);
+  const response = await fetch(`/api/entries/${entryId}`, {
+    method: 'DELETE',
+  });
+  const result = await response.json();
+  return result;
 }
