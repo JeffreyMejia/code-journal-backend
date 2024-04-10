@@ -51,7 +51,7 @@ export function EntryForm() {
       } else {
         await addEntry(newEntry);
       }
-      navigate('/');
+      navigate('/entry-list');
     } catch (error) {
       setError(error);
     }
@@ -60,7 +60,7 @@ export function EntryForm() {
   function handleDelete() {
     if (!entry?.entryId) throw new Error('Should never happen');
     removeEntry(entry.entryId);
-    navigate('/');
+    navigate('/entry-list');
   }
 
   if (isLoading) return <div>Loading...</div>;

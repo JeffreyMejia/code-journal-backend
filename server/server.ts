@@ -3,6 +3,19 @@ import 'dotenv/config';
 import pg from 'pg';
 import express from 'express';
 import { ClientError, errorMiddleware } from './lib/index.js';
+import argon2 from 'argon2';
+import jwt from 'jsonwebtoken';
+
+type User = {
+  userId: number;
+  username: string;
+  hashedPassword: string;
+};
+
+type Auth = {
+  username: string;
+  password: string;
+};
 
 const db = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -11,9 +24,60 @@ const db = new pg.Pool({
   },
 });
 
+const hashKey = process.env.TOKEN_SECRET;
+if (!hashKey) throw new Error('TOKEN_SECRET not found in .env');
+
 const app = express();
 
 app.use(express.json());
+app.post('/api/auth/sign-up', async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      throw new ClientError(400, 'username and password are required fields');
+    }
+    const hash = await argon2.hash(password);
+    const sql = `
+    insert into "users" ("username", "hashedPassword")
+    values ($1,$2)
+    returning "username", "userId"
+    `;
+    const params = [username, hash];
+    const results = await db.query(sql, params);
+    const newUser = results.rows[0];
+    res.status(201).json(newUser);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/sign-in', async (req, res, next) => {
+  try {
+    const { username, password } = req.body as Partial<Auth>;
+    if (!username || !password) {
+      throw new ClientError(401, 'invalid login');
+    }
+    const sql = `
+      select * from "users"
+      where "username" = $1
+      `;
+    const params = [username];
+    const results = await db.query(sql, params);
+    const user = results.rows[0];
+    if (!user) {
+      throw new ClientError(401, 'invalid login');
+    }
+    const verf = await argon2.verify(user.hashedPassword, password);
+    if (!verf) {
+      throw new ClientError(401, 'invalid login');
+    }
+    const userPayload = { userId: user.userId, username: user.username };
+    const token = jwt.sign(userPayload, hashKey);
+    res.status(200).json({ user: userPayload, token });
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/api/entries', async (req, res, next) => {
   try {
