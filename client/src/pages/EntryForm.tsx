@@ -41,16 +41,20 @@ export function EntryForm() {
     if (isEditing) load(+entryId);
   }, [entryId]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const newEntry = Object.fromEntries(formData) as unknown as Entry;
-    if (isEditing) {
-      updateEntry({ ...entry, ...newEntry });
-    } else {
-      addEntry(newEntry);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    try {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const newEntry = Object.fromEntries(formData) as unknown as Entry;
+      if (isEditing) {
+        await updateEntry({ ...entry, ...newEntry });
+      } else {
+        await addEntry(newEntry);
+      }
+      navigate('/');
+    } catch (error) {
+      setError(error);
     }
-    navigate('/');
   }
 
   function handleDelete() {
