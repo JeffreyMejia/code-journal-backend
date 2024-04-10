@@ -29,6 +29,26 @@ app.get('/api/entries', async (req, res, next) => {
   }
 });
 
+app.get('/api/entries/:entryId', async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    const sql = `
+      select *
+        from "entries"
+        where "entryId" = $1;
+    `;
+    const params = [entryId];
+    const result = await db.query(sql, params);
+    const entries = result.rows[0];
+    if (!entries) {
+      throw new ClientError(404, `Entry not found!`);
+    }
+    res.status(200).json(entries);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.post('/api/entries', async (req, res, next) => {
   try {
     const { title, notes, photoUrl } = req.body;
@@ -52,7 +72,6 @@ app.post('/api/entries', async (req, res, next) => {
 app.put('/api/entries/:entryId', async (req, res, next) => {
   try {
     const { entryId } = req.params;
-    console.log(`recieved request for ${entryId}`);
     const { title, notes, photoUrl } = req.body;
     if (!title || !notes || !photoUrl) {
       throw new ClientError(400, 'error all fields are required!');
@@ -72,6 +91,26 @@ app.put('/api/entries/:entryId', async (req, res, next) => {
       throw new ClientError(404, `error could not find ${entryId}`);
     }
     res.status(200).json(updatedEntry);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/entries/:entryId', async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    const sql = `
+    delete from "entries"
+      where "entryId" = $1
+      returning *;
+    `;
+    const params = [entryId];
+    const results = await db.query(sql, params);
+    const deleteEntry = results.rows[0];
+    if (!deleteEntry) {
+      throw new ClientError(404, `error could not find ${entryId}`);
+    }
+    res.sendStatus(204);
   } catch (error) {
     next(error);
   }

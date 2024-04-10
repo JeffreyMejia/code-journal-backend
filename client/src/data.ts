@@ -31,12 +31,10 @@ function writeData(data: Data): void {
   localStorage.setItem(dataKey, dataJSON);
 }
 
-export async function readEntries(): Promise<Entry[]> {
-  return readData().entries;
-}
-
 export async function readEntry(entryId: number): Promise<Entry | undefined> {
-  return readData().entries.find((e) => e.entryId === entryId);
+  const response = await fetch(`/api/entries/${entryId}`);
+  const result = await response.json();
+  return result;
 }
 
 export async function addEntry(entry: Entry): Promise<Entry> {
@@ -52,13 +50,15 @@ export async function addEntry(entry: Entry): Promise<Entry> {
 }
 
 export async function updateEntry(entry: Entry): Promise<Entry> {
-  const data = readData();
-  const newEntries = data.entries.map((e) =>
-    e.entryId === entry.entryId ? entry : e
-  );
-  data.entries = newEntries;
-  writeData(data);
-  return entry;
+  const response = await fetch(`/api/entries/${entry.entryId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(entry),
+  });
+  const result = await response.json();
+  return result;
 }
 
 export async function removeEntry(entryId: number): Promise<void> {
