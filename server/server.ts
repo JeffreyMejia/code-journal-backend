@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import express from 'express';
-import { ClientError, errorMiddleware } from './lib/index.js';
+import { ClientError, authMiddleware, errorMiddleware } from './lib/index.js';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 
@@ -79,13 +79,14 @@ app.post('/api/auth/sign-in', async (req, res, next) => {
   }
 });
 
-app.get('/api/entries', async (req, res, next) => {
+app.get('/api/entries', authMiddleware, async (req, res, next) => {
   try {
     const sql = `
       select *
-        from "entries";
+        from "entries"
+        where "userId" = $1;
     `;
-    const result = await db.query(sql);
+    const result = await db.query(sql, [req.user?.userId]);
     const entries = result.rows;
     res.status(200).json(entries);
   } catch (err) {
@@ -93,15 +94,15 @@ app.get('/api/entries', async (req, res, next) => {
   }
 });
 
-app.get('/api/entries/:entryId', async (req, res, next) => {
+app.get('/api/entries/:entryId', authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     const sql = `
       select *
         from "entries"
-        where "entryId" = $1;
+        where "entryId" = $1 and "userId" = $2;
     `;
-    const params = [entryId];
+    const params = [entryId, req.user?.userId];
     const result = await db.query(sql, params);
     const entries = result.rows[0];
     if (!entries) {
@@ -113,18 +114,18 @@ app.get('/api/entries/:entryId', async (req, res, next) => {
   }
 });
 
-app.post('/api/entries', async (req, res, next) => {
+app.post('/api/entries', authMiddleware, async (req, res, next) => {
   try {
     const { title, notes, photoUrl } = req.body;
     if (!title || !notes || !photoUrl) {
       throw new ClientError(400, 'You need title, notes, and photoURL.');
     }
     const sql = `
-      insert into "entries" ("title", "notes", "photoUrl")
-      values ($1, $2, $3)
+      insert into "entries" ("title", "notes", "photoUrl", "userId")
+      values ($1, $2, $3, $4)
       returning *;
     `;
-    const params = [title, notes, photoUrl];
+    const params = [title, notes, photoUrl, req.user?.userId];
     const result = await db.query(sql, params);
     const entry = result.rows[0];
     res.status(201).json(entry);
@@ -133,7 +134,7 @@ app.post('/api/entries', async (req, res, next) => {
   }
 });
 
-app.put('/api/entries/:entryId', async (req, res, next) => {
+app.put('/api/entries/:entryId', authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     const { title, notes, photoUrl } = req.body;
@@ -145,10 +146,10 @@ app.put('/api/entries/:entryId', async (req, res, next) => {
     set "title" = $1,
     "notes" = $2,
     "photoUrl" = $3
-    where "entryId" = $4
+    where "entryId" = $4 and "userId" = $5
     returning *;
     `;
-    const params = [title, notes, photoUrl, entryId];
+    const params = [title, notes, photoUrl, entryId, req.user?.userId];
     const results = await db.query(sql, params);
     const updatedEntry = results.rows[0];
     if (!updatedEntry) {
@@ -160,15 +161,15 @@ app.put('/api/entries/:entryId', async (req, res, next) => {
   }
 });
 
-app.delete('/api/entries/:entryId', async (req, res, next) => {
+app.delete('/api/entries/:entryId', authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     const sql = `
     delete from "entries"
-      where "entryId" = $1
+      where "entryId" = $1 and "userId" = $2
       returning *;
     `;
-    const params = [entryId];
+    const params = [entryId, req.user?.userId];
     const results = await db.query(sql, params);
     const deleteEntry = results.rows[0];
     if (!deleteEntry) {

@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../components/useUser';
-import { EntryList } from './EntryList';
 
 export function Home() {
   const { user, handleSignOut } = useUser();
+  console.log(user);
   const navigate = useNavigate();
 
   return (
@@ -46,7 +46,6 @@ export function Home() {
         </p>
       )}
       {!user && <p>Not signed in</p>}
-      {user && <EntryList />}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaPencilAlt } from 'react-icons/fa';
 import { Entry } from '../data';
+import { readToken } from '../data';
 
 export function EntryList() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -11,7 +12,13 @@ export function EntryList() {
   useEffect(() => {
     async function load() {
       try {
-        const response = await fetch('/api/entries');
+        const read = readToken();
+        const req = {
+          headers: {
+            Authorization: `Bearer ${read}`,
+          },
+        };
+        const response = await fetch('/api/entries', req);
         if (!response.ok) {
           throw new Error(`Bad Network request with status ${response.status}`);
         }
@@ -79,7 +86,7 @@ function EntryCard({ entry }: EntryProps) {
           <div className="row">
             <div className="column-full d-flex justify-between">
               <h3>{entry.title}</h3>
-              <Link to={`details/${entry.entryId}`}>
+              <Link to={`/details/${entry.entryId}`}>
                 <FaPencilAlt />
               </Link>
             </div>
